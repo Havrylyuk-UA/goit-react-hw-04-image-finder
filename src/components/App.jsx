@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useState, useEffect } from 'react';
 import Button from './Button/Button';
 import ImageGallery from './ImageGallery/ImageGallery';
 import Searchbar from './Searchbar/Searchbar';
@@ -9,141 +9,123 @@ import api from '../services/api';
 
 import './styles.css';
 
-export default class App extends Component {
-  state = {
-    images: [],
-    isLoading: false,
-    error: null,
-    searchWord: '',
-    page: 1,
-    per_page: 12,
-    modalOpen: false,
-    imageDetails: {},
-    search: null,
-    canFind: false,
-  };
+const App = () => {
+  const [images, setImages] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [searchWord, setSearchWord] = useState('');
+  const [page, setPage] = useState(1);
+  const [per_page] = useState(12);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [imageDetails, setImageDetails] = useState({});
+  const [search, setSearch] = useState(null);
+  const [canFind, setCanFind] = useState(false);
 
-  fetchImagesAndUpdateState = async () => {
-    const { images, searchWord, page, per_page } = this.state;
-
+  const fetchImagesAndUpdateState = async () => {
     try {
-      this.setState({
-        isLoading: true,
-        search: null,
-        canFind: false,
-      });
+      setIsLoading(true);
+      setSearch(null);
+      setCanFind(false);
 
       const searchImages = await api.fetchImages(searchWord, page, per_page);
 
       if (searchImages.hits.length === 0) {
-        this.setState({
-          isLoading: true,
-          search: null,
-          canFind: true,
-        });
+        setIsLoading(true);
+        setSearch(null);
+        setCanFind(true);
       }
 
-      this.setState({
-        images: [...images, ...searchImages.hits],
-      });
-      this.updateLimit(searchImages.totalHits);
+      setImages(prevImages => [...prevImages, ...searchImages.hits]);
+      updateLimit(searchImages.totalHits);
     } catch (error) {
-      this.setState({ error });
+      setError(error);
     } finally {
-      this.setState({ isLoading: false });
+      setIsLoading(false);
     }
   };
 
-  updateLimit = totalHits => {
-    const { page, per_page } = this.state;
+  const updateLimit = totalHits => {
     const limit = Math.ceil(totalHits / per_page);
-
-    this.setState({ search: page < limit });
+    setSearch(page < limit);
   };
 
-  async componentDidUpdate(prevProps, prevState) {
-    const { page, searchWord } = this.state;
-
-    if (page !== prevState.page || searchWord !== prevState.searchWord) {
-      await this.fetchImagesAndUpdateState();
+  useEffect(() => {
+    const fetchData = async () => {
+      await fetchImagesAndUpdateState();
+    };
+    if (searchWord !== '') {
+      fetchData();
     }
-  }
+  }, [page, searchWord]);
 
-  handleSearchImage = searchItem => {
+  const handleSearchImage = searchItem => {
     if (searchItem === '') {
-      return this.setState({ canFind: true, search: null, images: [] });
+      setCanFind(true);
+      setSearch(null);
+      setImages([]);
+      return;
     }
-    this.setState({ searchWord: searchItem, page: 1, images: [] });
+
+    setSearchWord(searchItem);
+    setPage(1);
+    setImages([]);
   };
 
-  handleAddPage = () => {
-    this.setState(prevState => ({ page: prevState.page + 1, isLoading: true }));
+  const handleAddPage = () => {
+    setPage(prevPage => prevPage + 1);
+    setIsLoading(true);
   };
 
-  showModal = ({ largeImg, alt }) => {
-    this.setState({
-      modalOpen: true,
-      imageDetails: {
-        largeImg,
-        alt,
-      },
+  const showModal = ({ largeImg, alt }) => {
+    setModalOpen(true);
+    setImageDetails({
+      largeImg,
+      alt,
     });
   };
 
-  closeModal = () => {
-    this.setState({
-      modalOpen: false,
-      imageDetails: {},
-    });
+  const closeModal = () => {
+    setModalOpen(false);
+    setImageDetails({});
   };
 
-  render() {
-    const {
-      images,
-      isLoading,
-      error,
-      search,
-      modalOpen,
-      imageDetails,
-      canFind,
-    } = this.state;
+  return (
+    <div className="App">
+      <Searchbar handleSearchImage={handleSearchImage} />
+      {error && (
+        <p style={{ textAlign: 'center' }}>
+          Whoops, something went wrong: {error.message}
+        </p>
+      )}
+      {canFind && (
+        <p style={{ textAlign: 'center' }}>
+          Sorry, I couldn't find pictures for your entry or the input field is
+          empty, please try again.
+        </p>
+      )}
+      <ImageGallery>
+        {images.length > 0 &&
+          images.map(({ webformatURL, largeImageURL, tags }, i) => (
+            <ImageGalleryItem
+              key={i}
+              img={webformatURL}
+              largeImg={largeImageURL}
+              alt={tags}
+              showModal={showModal}
+            />
+          ))}
+      </ImageGallery>
+      {isLoading && <Loader />}
+      {search && <Button handleAddPage={handleAddPage} />}
+      {modalOpen && (
+        <Modal
+          close={closeModal}
+          alt={imageDetails.alt}
+          src={imageDetails.largeImg}
+        />
+      )}
+    </div>
+  );
+};
 
-    return (
-      <div className="App">
-        <Searchbar handleSearchImage={this.handleSearchImage} />
-        {error && (
-          <p style={{ textAlign: 'center' }}>
-            Whoops, something went wrong: {error.message}
-          </p>
-        )}
-        {canFind && (
-          <p style={{ textAlign: 'center' }}>
-            Sorry, I couldn't find pictures for your entry or the input field is
-            empty, please try again.
-          </p>
-        )}
-        <ImageGallery>
-          {images.length > 0 &&
-            images.map(({ webformatURL, largeImageURL, tags }, i) => (
-              <ImageGalleryItem
-                key={i}
-                img={webformatURL}
-                largeImg={largeImageURL}
-                alt={tags}
-                showModal={this.showModal}
-              />
-            ))}
-        </ImageGallery>
-        {isLoading && <Loader />}
-        {search && <Button handleAddPage={this.handleAddPage} />}
-        {modalOpen && (
-          <Modal
-            close={this.closeModal}
-            alt={imageDetails.alt}
-            src={imageDetails.largeImg}
-          />
-        )}
-      </div>
-    );
-  }
-}
+export default App;

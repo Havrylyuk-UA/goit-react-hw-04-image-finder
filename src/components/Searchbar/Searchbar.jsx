@@ -1,57 +1,47 @@
-import { Component } from 'react';
+import { useState } from 'react';
 import searchImg from './free-icon-loupe-751463.png';
 
-export default class Searchbar extends Component {
-  constructor(props) {
-    super(props);
+const initialValue = {
+  word: '',
+};
 
-    this.state = {
-      word: '',
-    };
-  }
+const Searchbar = ({ handleSearchImage }) => {
+  const [word, setWord] = useState(initialValue);
 
-  handleSearch = e => {
+  const handleSearch = e => {
     e.preventDefault();
-    const { handleSearchImage } = this.props;
-    const { word } = this.state;
-
-    handleSearchImage(word.trim());
-    this.clearForm();
+    handleSearchImage(word.word.trim());
+    clearForm();
   };
 
-  clearForm = () => {
-    this.setState({ word: '' });
+  const clearForm = () => {
+    setWord(initialValue);
   };
 
-  handleChangeWord = e => {
-    this.setState({ word: e.target.value });
+  const handleChangeWord = e => {
+    const targetWord = e.target.value;
+    setWord({ word: targetWord });
   };
 
-  render() {
-    return (
-      <header className="Searchbar">
-        <form className="SearchForm" onSubmit={this.handleSearch}>
-          <button type="submit" className="SearchForm-button">
-            <img
-              src={searchImg}
-              alt="searc-img"
-              width={20}
-              height={20}
-              className="serarch-ico"
-            />
-          </button>
+  return (
+    <header className="Searchbar">
+      <form className="SearchForm" onSubmit={handleSearch}>
+        <button type="submit" className="SearchForm-button">
+          <img src={searchImg} alt="search-img" className="search-icon" />
+        </button>
 
-          <input
-            className="SearchForm-input"
-            type="text"
-            autoComplete="off"
-            autoFocus
-            placeholder="Search images and photos"
-            onChange={this.handleChangeWord}
-            value={this.state.word}
-          />
-        </form>
-      </header>
-    );
-  }
-}
+        <input
+          className="SearchForm-input"
+          type="text"
+          autoComplete="off"
+          autoFocus
+          placeholder="Search images and photos"
+          onChange={handleChangeWord}
+          value={word.word}
+        />
+      </form>
+    </header>
+  );
+};
+
+export default Searchbar;
