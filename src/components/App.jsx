@@ -21,42 +21,37 @@ const App = () => {
   const [search, setSearch] = useState(null);
   const [canFind, setCanFind] = useState(false);
 
-  const fetchImagesAndUpdateState = async () => {
-    try {
-      setIsLoading(true);
-      setSearch(null);
-      setCanFind(false);
-
-      const searchImages = await api.fetchImages(searchWord, page, per_page);
-
-      if (searchImages.hits.length === 0) {
+  useEffect(() => {
+    const fetchImagesAndUpdateState = async () => {
+      try {
         setIsLoading(true);
         setSearch(null);
-        setCanFind(true);
+        setCanFind(false);
+
+        const searchImages = await api.fetchImages(searchWord, page, per_page);
+
+        if (searchImages.hits.length === 0) {
+          setIsLoading(true);
+          setSearch(null);
+          setCanFind(true);
+        }
+
+        setImages(prevImages => [...prevImages, ...searchImages.hits]);
+        const updateLimit = totalHits => {
+          const limit = Math.ceil(totalHits / per_page);
+          setSearch(page < limit);
+        };
+        updateLimit(searchImages.totalHits);
+      } catch (error) {
+        setError(error);
+      } finally {
+        setIsLoading(false);
       }
-
-      setImages(prevImages => [...prevImages, ...searchImages.hits]);
-      updateLimit(searchImages.totalHits);
-    } catch (error) {
-      setError(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateLimit = totalHits => {
-    const limit = Math.ceil(totalHits / per_page);
-    setSearch(page < limit);
-  };
-
-  useEffect(() => {
-    const fetchData = async () => {
-      await fetchImagesAndUpdateState();
     };
     if (searchWord !== '') {
-      fetchData();
+      fetchImagesAndUpdateState();
     }
-  }, [page, searchWord]);
+  }, [page, per_page, searchWord]);
 
   const handleSearchImage = searchItem => {
     if (searchItem === '') {
